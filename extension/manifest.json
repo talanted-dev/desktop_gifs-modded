@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Desktop GIFs",
+  "name": "Desktop GIFs modded",
   "version": "0.1.8",
   "description": "Post Tenor GIFs in YouTube comments and replies from desktop.",
   "minimum_chrome_version": "121",
