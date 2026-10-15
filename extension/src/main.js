@@ -155,15 +155,24 @@
     verdict = await judge(response);
     const detail = `HTTP ${verdict.httpStatus}${verdict.apiStatus ? `, ${verdict.apiStatus}` : ''}`;
     const said = !verdict.message ? '' : /[.!?]$/.test(verdict.message) ? ` ${verdict.message}` : ` ${verdict.message}.`;
+    const endpoint = /create_comment_reply(\\?|$)/.test(url) ? 'create_comment_reply' : 'create_comment';
+    const serverDetails = Array.isArray(verdict.details) && verdict.details.length
+      ? `\\n\\nYouTube's additional details: ${verdict.details.join(' | ')}`
+      : '';
     const error = verdict.kind === 'posted' ? null
       : verdict.kind === 'gif' ? (verdict.message
         ? `YouTube turned this GIF comment down:${said} Nothing was posted.`
-        : 'YouTube does not accept this GIF. Try a different one. Nothing was posted.')
-      : verdict.kind === 'blocked' ? (entry.ratedG
-        ? `YouTube rejected the GIF-comment request (HTTP 400 INVALID_ARGUMENT). This does not prove that desktop GIF comments are disabled. Check the server response and try again later.`
-        : 'YouTube turned this GIF comment down. Either Tenor does not rate the GIF G, or YouTube is refusing GIF comments sent from desktop. Nothing was posted.')
-      : verdict.kind === 'rejected' ? `YouTube rejected this GIF comment (${detail}).${said} Nothing was posted.`
-      : `YouTube did not confirm this GIF comment (${detail}).${said} Check the comments before trying again.`;
+        : 'YouTube did not accept this GIF. The response did not include a specific reason. Try a different GIF. Nothing was posted.')
+      : verdict.kind === 'blocked' ? [
+          'YouTube rejected the GIF-comment request.',
+          `Server response: HTTP ${verdict.httpStatus} / ${verdict.apiStatus || 'no API status'} — ${verdict.message || 'no explanation provided'}`,
+          serverDetails ? serverDetails.trim() : 'YouTube did not identify the exact invalid field.',
+          `Request diagnostics: endpoint=${endpoint}; GIF ID=${id}; rated G=${entry.ratedG ? 'yes' : 'no'}; comment text=${ownText ? 'present' : 'empty'}.`,
+          'Likely possibilities (not confirmed): the endpoint may not accept a GIF-only comment, the tenorId field/value may not be supported for this request, or YouTube may have changed its request format.',
+          'This response does not prove that all desktop GIF comments are disabled. Check whether the comment appeared before trying again.'
+        ].join('\\n\\n')
+      : verdict.kind === 'rejected' ? `YouTube rejected this GIF comment (${detail}).${said}${serverDetails} Nothing was posted.`
+      : `YouTube did not confirm this GIF comment (${detail}).${said}${serverDetails} Check the comments before trying again.`;
     if (verdict.kind !== 'posted') {
       // Enough to tell the cases apart in a bug report, and nothing more: no
       // comment text, headers, credentials, attestation or response body.
@@ -180,6 +189,7 @@
         apiStatus: verdict.apiStatus,
         actionStatus: verdict.actionStatus,
         message: verdict.message,
+        details: verdict.details,
       }));
     }
     toContent({ type: 'result', nonce, ok: verdict.kind === 'posted', error });
@@ -209,6 +219,28 @@
     });
   }
 
+  // Extract only human-readable validation details from structured API errors.
+  // Do not serialize the whole response: it may contain unrelated request data.
+  function apiErrorDetails(error) {
+    if (!error || !Array.isArray(error.details)) return [];
+    const out = [];
+    for (const item of error.details) {
+      if (!item || typeof item !== 'object') continue;
+      for (const key of ['field', 'fieldName', 'reason', 'description', 'message', 'type']) {
+        if (typeof item[key] === 'string' && item[key].trim()) out.push(item[key].trim());
+      }
+      if (Array.isArray(item.fieldViolations)) {
+        for (const violation of item.fieldViolations) {
+          if (!violation || typeof violation !== 'object') continue;
+          const field = typeof violation.field === 'string' ? violation.field : '';
+          const description = typeof violation.description === 'string' ? violation.description : '';
+          if (field || description) out.push([field, description].filter(Boolean).join(': '));
+        }
+      }
+    }
+    return [...new Set(out)].slice(0, 8);
+  }
+
   // Reads YouTube's answer as one kind:
   //   posted     the comment is up
   //   gif        HTTP 200 with a showErrorAction where the actionResult would
@@ -229,14 +261,17 @@
       ...errorActions(json.onResponseReceivedActions),
       ...errorActions(json.onResponseReceivedEndpoints),
     ] : [];
-    const apiStatus = json && json.error && typeof json.error.status === 'string' ? json.error.status : null;
-    const message = [...new Set([textOf(json && json.error && json.error.message), ...errors, textOf(action && action.feedbackText)]
+    const apiError = json && json.error;
+    const apiStatus = apiError && typeof apiError.status === 'string' ? apiError.status : null;
+    const details = apiErrorDetails(apiError);
+    const message = [...new Set([textOf(apiError && apiError.message), ...errors, textOf(action && action.feedbackText)]
       .filter(Boolean))].join(' ');
     const verdict = {
       httpStatus: response.status,
       apiStatus,
       actionStatus: action && typeof action.status === 'string' ? action.status : null,
       message,
+      details,
     };
     const kind = response.ok && action && action.status === 'STATUS_SUCCEEDED' && !errors.length ? 'posted'
       : response.status === 400 && apiStatus === 'INVALID_ARGUMENT' ? 'blocked'
