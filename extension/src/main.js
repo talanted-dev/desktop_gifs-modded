@@ -37,21 +37,12 @@
   const CREATE_URL = /\/youtubei\/v1\/comment\/create_comment(_reply)?(\?|$)/;
   const MARKER = /\[\[gif:(\d{1,20}):([a-z0-9]{8,32})\]\]/;
   const ARM_TTL_MS = 3 * 60 * 1000;
-  // Since 14 October 2026 YouTube turns down GIF comments from desktop with
-  // HTTP 400. At first the very same request, sent again, was refused about
-  // two times in three. Later that day every request with a tenorId was
-  // refused, before YouTube even looked the GIF up: real or made-up ID, with
-  // or without text, comment or reply. Text comments in the same requests
-  // still validated, and no other request field carries a GIF. People report
-  // that it depends on where they connect from, so a blocked one still gets
-  // up to twelve tries in about half a minute. A blocked request posts
-  // nothing, so trying again cannot post twice.
-  const RETRY_DELAYS_MS = [1000, 1500, 2000, 2000, 2500, 2500, 3000, 3000, 3000, 3000, 3000];
+  // Do not automatically retry: an ambiguous response or transport failure may
+  // still have posted the comment, so retrying could create duplicates.
 
   // nonce -> { id, ratedG, expires }
   const armed = new Map();
 
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const toContent = (msg) => window.postMessage({ gcfy: 'to-content', ...msg }, location.origin);
 
   function onMessage(e) {
@@ -145,44 +136,24 @@
       ? originalFetch.call(this, new Request(input, { ...init, body: payload, headers }))
       : originalFetch.call(this, input, { ...init, body: payload, headers }));
 
-    const tries = RETRY_DELAYS_MS.length + 1;
-    let response;
-    let verdict;
-    let attempt = 0;
-    for (;;) {
-      attempt++;
-      try {
-        response = await send();
-      } catch (e) {
-        toContent({ type: 'result', nonce, ok: false, error: 'The request could not be sent. Nothing was posted.' });
-        throw e;
-      }
-      verdict = await judge(response);
-      // A reply with a GIF that is not rated G is blocked the same way, and
-      // every time, so only a G one is worth another try.
-      if (verdict.kind !== 'blocked' || !entry.ratedG || attempt === tries) break;
-      toContent({ type: 'retrying', nonce, attempt: attempt + 1, tries });
-      await sleep(RETRY_DELAYS_MS[attempt - 1]);
-    }
-    
-    const tries = 1;
+    // Send only once. Retrying a request with an uncertain outcome could duplicate a comment.
     let response;
     let verdict;
     const attempt = 1;
-
     try {
       response = await send();
     } catch (e) {
-        toContent({
-          type: 'result',
-          nonce,
-          ok: false,
-          error: 'The request could not be sent. Check your connection and comment status before trying again.',
-        });
-    throw e;
+      toContent({
+        type: 'result',
+        nonce,
+        ok: false,
+        error: 'The request could not be sent. Check your connection and comment status before trying again.',
+      });
+      throw e;
     }
 
-verdict = await judge(response);
+    verdict = await judge(response);
+    const detail = `HTTP ${verdict.httpStatus}${verdict.apiStatus ? `, ${verdict.apiStatus}` : ''}`;
     const said = !verdict.message ? '' : /[.!?]$/.test(verdict.message) ? ` ${verdict.message}` : ` ${verdict.message}.`;
     const error = verdict.kind === 'posted' ? null
       : verdict.kind === 'gif' ? (verdict.message
