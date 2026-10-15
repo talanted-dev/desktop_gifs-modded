@@ -164,15 +164,32 @@
       toContent({ type: 'retrying', nonce, attempt: attempt + 1, tries });
       await sleep(RETRY_DELAYS_MS[attempt - 1]);
     }
+    
+    const tries = 1;
+    let response;
+    let verdict;
+    const attempt = 1;
 
-    const detail = `HTTP ${verdict.httpStatus}${verdict.apiStatus ? `, ${verdict.apiStatus}` : ''}`;
+    try {
+      response = await send();
+    } catch (e) {
+        toContent({
+          type: 'result',
+          nonce,
+          ok: false,
+          error: 'The request could not be sent. Check your connection and comment status before trying again.',
+        });
+    throw e;
+    }
+
+verdict = await judge(response);
     const said = !verdict.message ? '' : /[.!?]$/.test(verdict.message) ? ` ${verdict.message}` : ` ${verdict.message}.`;
     const error = verdict.kind === 'posted' ? null
       : verdict.kind === 'gif' ? (verdict.message
         ? `YouTube turned this GIF comment down:${said} Nothing was posted.`
         : 'YouTube does not accept this GIF. Try a different one. Nothing was posted.')
       : verdict.kind === 'blocked' ? (entry.ratedG
-        ? `YouTube is refusing GIF comments sent from desktop (tried ${tries} times). The GIF is not the cause, so another one will not help. This changed on YouTube's side; the YouTube phone app may still post GIFs. Nothing was posted.`
+        ? `YouTube rejected the GIF-comment request (HTTP 400 INVALID_ARGUMENT). This does not prove that desktop GIF comments are disabled. Check the server response and try again later.`
         : 'YouTube turned this GIF comment down. Either Tenor does not rate the GIF G, or YouTube is refusing GIF comments sent from desktop. Nothing was posted.')
       : verdict.kind === 'rejected' ? `YouTube rejected this GIF comment (${detail}).${said} Nothing was posted.`
       : `YouTube did not confirm this GIF comment (${detail}).${said} Check the comments before trying again.`;
