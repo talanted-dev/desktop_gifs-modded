@@ -167,9 +167,10 @@
           'YouTube rejected the GIF-comment request.',
           `Server response: HTTP ${verdict.httpStatus} / ${verdict.apiStatus || 'no API status'} — ${verdict.message || 'no explanation provided'}`,
           serverDetails ? serverDetails.trim() : 'YouTube did not identify the exact invalid field.',
-          `Request diagnostics: endpoint=${endpoint}; GIF ID=${id}; rated G=${entry.ratedG ? 'yes' : 'no'}; comment text=${ownText ? 'present' : 'empty'}.`,
-          'Likely possibilities (not confirmed): the endpoint may not accept a GIF-only comment, the tenorId field/value may not be supported for this request, or YouTube may have changed its request format.',
-          'This response does not prove that all desktop GIF comments are disabled. Check whether the comment appeared before trying again.'
+          `Request diagnostics: endpoint=${endpoint}; Tenor ID=${id}; extension G-rating check=${entry.ratedG ? 'passed' : 'not confirmed'}; comment text=${ownText ? 'present' : 'empty'}.`,
+          'Current upstream reports describe the same HTTP 400 for GIF requests with and without text, including replies. This points to validation of the GIF submission, but does not reveal the exact server-side rule.',
+          'Changing the browser user-agent has not been shown to fix this, and no verified request-format fix is currently known.',
+          'This is not evidence that this particular GIF is bad. Check whether the comment appeared before trying again.'
         ].join('\n\n')
       : verdict.kind === 'rejected' ? `YouTube rejected this GIF comment (${detail}).${said}${serverDetails} Nothing was posted.`
       : `YouTube did not confirm this GIF comment (${detail}).${said}${serverDetails} Check the comments before trying again.`;
@@ -246,9 +247,10 @@
   //   gif        HTTP 200 with a showErrorAction where the actionResult would
   //              be: YouTube looked the GIF up and will not take it (unknown
   //              ID, or not rated G)
-  //   blocked    HTTP 400 INVALID_ARGUMENT: YouTube accepted the GIF but
-  //              refuses the comment. The page's own request was valid before
-  //              the GIF was added, so this is about GIF comments.
+  //   blocked    HTTP 400 INVALID_ARGUMENT after tenorId was added. This
+  //              identifies a rejected GIF-comment request, but does not prove
+  //              whether the field, its value, feature eligibility, or another
+  //              server-side validation rule caused the rejection.
   //   rejected   another refusal; nothing was posted
   //   uncertain  no readable confirmation either way; the comment may be up
   // with YouTube's own explanation, if it gave one.
