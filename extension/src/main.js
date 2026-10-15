@@ -155,9 +155,9 @@
     verdict = await judge(response);
     const detail = `HTTP ${verdict.httpStatus}${verdict.apiStatus ? `, ${verdict.apiStatus}` : ''}`;
     const said = !verdict.message ? '' : /[.!?]$/.test(verdict.message) ? ` ${verdict.message}` : ` ${verdict.message}.`;
-    const endpoint = /create_comment_reply(\\?|$)/.test(url) ? 'create_comment_reply' : 'create_comment';
+    const endpoint = /create_comment_reply(\?|$)/.test(url) ? 'create_comment_reply' : 'create_comment';
     const serverDetails = Array.isArray(verdict.details) && verdict.details.length
-      ? `\\n\\nYouTube's additional details: ${verdict.details.join(' | ')}`
+      ? `\n\nYouTube's additional details: ${verdict.details.join(' | ')}`
       : '';
     const error = verdict.kind === 'posted' ? null
       : verdict.kind === 'gif' ? (verdict.message
@@ -170,7 +170,7 @@
           `Request diagnostics: endpoint=${endpoint}; GIF ID=${id}; rated G=${entry.ratedG ? 'yes' : 'no'}; comment text=${ownText ? 'present' : 'empty'}.`,
           'Likely possibilities (not confirmed): the endpoint may not accept a GIF-only comment, the tenorId field/value may not be supported for this request, or YouTube may have changed its request format.',
           'This response does not prove that all desktop GIF comments are disabled. Check whether the comment appeared before trying again.'
-        ].join('\\n\\n')
+        ].join('\n\n')
       : verdict.kind === 'rejected' ? `YouTube rejected this GIF comment (${detail}).${said}${serverDetails} Nothing was posted.`
       : `YouTube did not confirm this GIF comment (${detail}).${said}${serverDetails} Check the comments before trying again.`;
     if (verdict.kind !== 'posted') {
