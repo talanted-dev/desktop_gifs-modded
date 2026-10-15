@@ -11,7 +11,6 @@
 <p align="center">
   <a href="https://github.com/rayytor/desktop_gifs/releases/latest"><img src="https://img.shields.io/github/manifest-json/v/rayytor/desktop_gifs?filename=extension%2Fmanifest.json&label=version&color=ff0033" alt="Version"></a>
   <img src="https://img.shields.io/badge/Chrome-121%2B-4285F4?logo=googlechrome&logoColor=white" alt="Chrome 121 or newer">
-  <img src="https://img.shields.io/badge/Firefox-140%2B-FF7139?logo=firefoxbrowser&logoColor=white" alt="Firefox 140 or newer">
   <img src="https://img.shields.io/badge/Manifest-V3-34A853" alt="Manifest V3">
   <a href="LICENSE"><img src="https://img.shields.io/github/license/rayytor/desktop_gifs" alt="License: GPL-3.0"></a>
 </p>
@@ -30,9 +29,7 @@
 </p>
 
 > [!WARNING]
-> **Posting GIFs is broken right now.** Since 14 October 2026 YouTube refuses GIF comments sent from desktop. For most people every try fails, whether it has text or not, and whether it is a comment or a reply. The cause is on YouTube's side. Reinstalling, updating or picking another GIF will not fix it. Searching and the picker still work.
->
-> I have not found a way around it yet. **If you find one, open a pull request and I will review and merge it.** What is known so far, and where to report, is in [#93](https://github.com/rayytor/desktop_gifs/issues/93). Please add to that issue instead of opening a new one.
+> This repository made for fixing a bug with youtube in 14 october 2026 year.
 
 YouTube's mobile app can attach a GIF to a comment; the desktop site has no button for it. Desktop GIFs adds one, next to the emoji button:
 
