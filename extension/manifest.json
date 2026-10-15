@@ -9,7 +9,9 @@
       "id": "desktop-gifs@rayytor",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
@@ -19,23 +21,43 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["scripting", "storage"],
-  "host_permissions": ["https://tenor.com/*", "https://www.youtube.com/*"],
+  "permissions": [
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://tenor.com/*",
+    "https://tenor.googleapis.com/*",
+    "https://www.youtube.com/*",
+    "https://api.github.com/*"
+  ],
   "background": {
     "service_worker": "src/sw.js",
-    "scripts": ["src/sw.js"]
+    "scripts": [
+      "src/sw.js"
+    ]
   },
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["src/main.js"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "src/main.js"
+      ],
       "world": "MAIN",
       "run_at": "document_start"
     },
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["src/content.js"],
-      "css": ["src/content.css"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "css": [
+        "src/content.css"
+      ],
       "run_at": "document_start"
     }
   ]
